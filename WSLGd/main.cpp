@@ -259,13 +259,6 @@ try {
         return 1;
     }
 
-    // Query the VM ID.
-    auto vmId = getenv(c_vmIdEnv);
-    if (!vmId) {
-        LOG_ERROR("%s must be set.", c_vmIdEnv);
-        return 1;
-    }
-
     // Query the WSL install path.
     bool isWslInstallPathEnvPresent = false;
     std::string wslInstallPath = "C:\\ProgramData\\Microsoft\\WSL";
