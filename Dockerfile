@@ -358,6 +358,10 @@ RUN if [ -z "$SYSTEMDISTRO_DEBUG_BUILD" ] ; then \
              xorg-x11-server-debuginfo;          \
     fi
 
+RUN echo "== Install Extra Runtime Dependencies ==" && \
+    tdnf    install -y \
+            socat
+
 # Clear the tdnf cache to make the image smaller
 RUN tdnf clean all
 
@@ -404,4 +408,6 @@ COPY --from=dev /work/vendor/mesa/docs /usr/share/doc/mesa/
 
 COPY --from=dev /work/versions.txt /etc/versions.txt
 
-CMD /usr/bin/WSLGd
+COPY entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["/usr/bin/WSLGd"]
