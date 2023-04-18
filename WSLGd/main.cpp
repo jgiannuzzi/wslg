@@ -473,66 +473,6 @@ try {
     if (GetEnvBool("WSLG_USE_USER_DISTRO_XFONTS", true))
         fontMonitor.Start(); 
 
-    // Launch the mstsc/msrdc client.
-    std::string remote("/v:");
-    remote += vmId;
-    std::string serviceId("/hvsocketserviceid:");
-    serviceId += ToServiceId(address.svm_port);
-    std::string sharedMemoryObPath("");
-    if (isSharedMemoryMounted) {
-        sharedMemoryObPath += "/wslgsharedmemorypath:";
-        sharedMemoryObPath += sharedMemoryObDirectoryPath;
-    }
-
-    std::filesystem::path rdpClientExePath;
-    bool isUseMstsc = GetEnvBool("WSLG_USE_MSTSC", false);
-    if (!isUseMstsc && !wslExecutionAliasPath.empty()) {
-        std::filesystem::path msrdcExePath = TranslateWindowsPath(wslExecutionAliasPath.c_str());
-        msrdcExePath /= MSRDC_EXE;
-        if (access(msrdcExePath.c_str(), X_OK) == 0) {
-            rdpClientExePath = std::move(msrdcExePath);
-        }
-    }
-    if (rdpClientExePath.empty()) {
-        rdpClientExePath = c_windowsSystem32;
-        rdpClientExePath /= MSTSC_EXE;
-    }
-
-    std::string wslDvcPlugin;
-    if (GetEnvBool("WSLG_USE_WSLDVC_PRIVATE", false))
-        wslDvcPlugin = "/plugin:WSLDVC_PRIVATE";
-    else if (isWslInstallPathEnvPresent)
-        wslDvcPlugin = "/plugin:WSLDVC_PACKAGE";
-    else
-        wslDvcPlugin = "/plugin:WSLDVC";
-
-    std::string rdpFilePathArg(wslInstallPath);
-    auto rdpFile = getenv(c_rdpFileOverrideEnv);
-    if (rdpFile) {
-        if (strstr(rdpFile, "..\\") || strstr(rdpFile, "../")) {
-            LOG_ERROR("RDP file must not contain relative path (%s)", rdpFile);
-            rdpFile = nullptr;
-        }
-    }
-    rdpFilePathArg += "\\"; // Windows-style path
-    if (rdpFile) {
-        rdpFilePathArg += rdpFile;
-    } else {
-        rdpFilePathArg += c_rdpFile;
-    }
-
-    monitor.LaunchProcess(std::vector<std::string>{
-        "/init",
-        std::move(rdpClientExePath),
-        basename(rdpClientExePath.c_str()),
-        std::move(remote),
-        std::move(serviceId),
-        "/silent",
-        "/wslg",
-        std::move(wslDvcPlugin),
-        std::move(sharedMemoryObPath),
-        std::move(rdpFilePathArg)
-    });
 
     // Launch the system dbus daemon.
     monitor.LaunchProcess(std::vector<std::string>{
