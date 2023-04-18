@@ -462,46 +462,6 @@ try {
     WaitForReadyNotify(notifyFd.get());
     unlink(WESTON_NOTIFY_SOCKET);
 
-    // Start font monitoring if user distro's X11 fonts to be shared with system distro.
-    if (GetEnvBool("WSLG_USE_USER_DISTRO_XFONTS", true))
-        fontMonitor.Start(); 
-
-
-    // Launch the system dbus daemon.
-    monitor.LaunchProcess(std::vector<std::string>{
-        "/usr/bin/dbus-daemon",
-        "--syslog",
-        "--nofork",
-        "--nopidfile",
-        "--system"
-        },
-        std::vector<cap_value_t>{CAP_SETGID, CAP_SETUID}
-    );
-
-    // Construct pulseaudio launch command line.
-    std::string pulseaudioLaunchArgs =
-        "/usr/bin/dbus-launch "
-        "/usr/bin/pulseaudio "
-        "--load=\"module-rdp-sink sink_name=RDPSink\" "
-        "--load=\"module-rdp-source source_name=RDPSource\" "
-        "--load=\"module-native-protocol-unix socket=" SHARE_PATH "/PulseServer auth-anonymous=true\" ";
-
-    // Construct log file option string.
-    std::string pulseaudioLogFileOption("--log-target=");
-    auto pulseAudioLogFilePathEnv = getenv("WSLG_PULSEAUDIO_LOG_PATH");
-    if (pulseAudioLogFilePathEnv) {
-        pulseaudioLogFileOption += pulseAudioLogFilePathEnv;
-    } else {
-        pulseaudioLogFileOption += "file:" SHARE_PATH "/pulseaudio.log";
-    }
-    pulseaudioLaunchArgs += pulseaudioLogFileOption;
-
-    // Launch pulseaudio and the associated dbus daemon.
-    monitor.LaunchProcess(std::vector<std::string>{
-        "/usr/bin/sh",
-        "-c",
-        std::move(pulseaudioLaunchArgs)
-    });
 
     return monitor.Run();
 }
