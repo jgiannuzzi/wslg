@@ -325,21 +325,20 @@ try {
     // Create a listening vsock to be used for the RDP connection.
     //
     // N.B. getsockname is used to get the port assigned by the kernel.
-    sockaddr_vm address{};
-    address.svm_family = AF_VSOCK;
-    address.svm_cid = VMADDR_CID_ANY;
-    address.svm_port = VMADDR_PORT_ANY;
-    socklen_t addressSize = sizeof(address);
-    wil::unique_fd socketFd{socket(AF_VSOCK, SOCK_STREAM, 0)};
+    struct sockaddr_un address = {};
+    socklen_t addressSize, nameSize;
+    address.sun_family = AF_LOCAL;
+    nameSize = snprintf(address.sun_path, sizeof address.sun_path,
+                        "%s", "/mnt/wslg/rdp.sock") + 1;
+    addressSize = offsetof(struct sockaddr_un, sun_path) + nameSize;
+    unlink(address.sun_path);
+    wil::unique_fd socketFd{socket(AF_LOCAL, SOCK_STREAM, 0)};
     THROW_LAST_ERROR_IF(!socketFd);
     auto socketFdString = std::to_string(socketFd.get());
     THROW_LAST_ERROR_IF(bind(socketFd.get(), reinterpret_cast<const sockaddr*>(&address), addressSize) < 0);
     THROW_LAST_ERROR_IF(listen(socketFd.get(), 1) < 0);
-    THROW_LAST_ERROR_IF(getsockname(socketFd.get(), reinterpret_cast<sockaddr*>(&address), &addressSize));
     std::string socketEnvString("USE_VSOCK=");
     socketEnvString += socketFdString;
-    std::string serviceIdEnvString("WSLG_SERVICE_ID=");
-    serviceIdEnvString += ToServiceId(address.svm_port);
 
     // "ulimits -c unlimited" for core dumps.
     struct rlimit limit;
@@ -458,7 +457,6 @@ try {
             },
             std::vector<std::string>{
                 std::move(socketEnvString),
-                std::move(serviceIdEnvString),
                 "WSLGD_NOTIFY_SOCKET=" WESTON_NOTIFY_SOCKET,
                 "WESTON_DISABLE_ABSTRACT_FD=1",
                 getenv("WLOG_APPENDER") ? : "", "WLOG_APPENDER=file",
